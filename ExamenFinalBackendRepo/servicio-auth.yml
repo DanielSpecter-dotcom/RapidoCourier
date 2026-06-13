@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres-db:5432/auth_db
+    username: postgres
+    password: password123
+  jpa:
+    hibernate:
+      ddl-auto: update
+jwt:
+  secret: 4b6a8e8b9c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f # Clave hardcodeada (omitiendo Vault)
+  expiration: 86400000

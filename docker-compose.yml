@@ -49,13 +49,12 @@ services:
     container_name: config-server
     ports:
       - "8888:8888"
-    volumes:
-      # Usamos ruta relativa. Asegúrate que la carpeta se llame exactamente así
-      - ./ExamenFinalBackendRepo:/app/ExamenFinalBackendRepo
+    # volumes:
+    #   # Ya no es necesario montar un volumen local ya que el contenedor clonará desde GitHub
+    #   - ./ExamenFinalBackendRepo:/app/ExamenFinalBackendRepo
     environment:
       - SPRING_PROFILES_ACTIVE=git
-      # Dentro del contenedor, la ruta debe coincidir con el destino del volumen arriba
-      - SPRING_CLOUD_CONFIG_SERVER_GIT_URI=file:///app/ExamenFinalBackendRepo
+      - SPRING_CLOUD_CONFIG_SERVER_GIT_URI=https://github.com/DanielSpecter-dotcom/ExamenFinalBackendRepo.git
     depends_on:
       eureka-server:
         condition: service_healthy

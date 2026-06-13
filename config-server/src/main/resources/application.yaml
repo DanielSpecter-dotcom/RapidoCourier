@@ -5,8 +5,8 @@ spring:
     config:
       server:
         git:
-          # Toma la variable de entorno de Docker, o usa una ruta local por defecto si corres desde tu IDE
-          uri: ${SPRING_CLOUD_CONFIG_SERVER_GIT_URI:file://${user.dir}/ExamenFinalBackendRepo}
+          # Toma la variable de entorno de Docker, o usa la ruta remota de GitHub por defecto
+          uri: ${SPRING_CLOUD_CONFIG_SERVER_GIT_URI:https://github.com/DanielSpecter-dotcom/ExamenFinalBackendRepo.git}
           default-label: main
 server:
   port: 8888

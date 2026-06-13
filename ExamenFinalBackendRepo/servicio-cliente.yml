@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/cliente_db
+    username: postgres
+    password: password123
+  jpa:
+    hibernate:
+      ddl-auto: update
+reniec:
+  api:
+    url: https://api.decolecta.com/v1/reniec/dni
+    token: ${RENIEC_API_TOKEN:sk_14050.w5IiZP8rPe5uRDITZ6LnIPyDDBnO9hK5}

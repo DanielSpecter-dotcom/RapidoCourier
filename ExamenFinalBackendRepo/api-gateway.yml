@@ -1,0 +1,27 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: servicio-auth
+          uri: lb://servicio-auth
+          predicates:
+            - Path=/api/v1/auth/**
+            
+        - id: servicio-cliente
+          uri: lb://servicio-cliente
+          predicates:
+            - Path=/api/v1/clientes/**
+            
+        - id: servicio-paquete
+          uri: lb://servicio-paquete
+          predicates:
+            - Path=/api/v1/paquetes/**
+          filters:
+            - AddResponseHeader=X-Servicio-Destino, Servicio-Paquete
+
+        - id: servicio-categoria
+          uri: lb://servicio-paquete
+          predicates:
+            - Path=/api/v1/categorias/**
+          filters:
+            - AddResponseHeader=X-Servicio-Destino, Servicio-Paquete
