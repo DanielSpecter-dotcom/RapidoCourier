@@ -1,0 +1,17 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  config:
+    # Cambiamos localhost por el nombre del contenedor
+    import: optional:configserver:http://config-server:8888
+
+eureka:
+  client:
+    service-url:
+      # Cambiamos localhost por el nombre del contenedor
+      defaultZone: http://eureka-server:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true

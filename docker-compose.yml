@@ -1,0 +1,136 @@
+version: '3.8'
+
+networks:
+  rapido-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  # Base de Datos Centralizada
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servidor de Descubrimiento (Eureka)
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - rapido-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8761/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s # Tiempo de gracia para que Spring Boot arranque
+
+  # Servidor de Configuración Centralizada
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    volumes:
+      # Usamos ruta relativa. Asegúrate que la carpeta se llame exactamente así
+      - ./ExamenFinalBackendRepo:/app/ExamenFinalBackendRepo
+    environment:
+      - SPRING_PROFILES_ACTIVE=git
+      # Dentro del contenedor, la ruta debe coincidir con el destino del volumen arriba
+      - SPRING_CLOUD_CONFIG_SERVER_GIT_URI=file:///app/ExamenFinalBackendRepo
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - rapido-network
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8888/servicio-auth/default" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # Puerta de Enlace (API Gateway)
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+    depends_on:
+      config-server:
+        condition: service_healthy # Ahora espera a que el config-server esté completamente listo
+    networks:
+      - rapido-network
+
+  # ---------------------------------------------------------
+  # MICROSERVICIOS DE NEGOCIO
+  # ---------------------------------------------------------
+
+  servicio-auth:
+    build: ./servicio-auth
+    container_name: servicio-auth
+    environment:
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/auth_db
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy # Ahora espera a que el config-server esté completamente listo
+    networks:
+      - rapido-network
+
+  servicio-cliente:
+    build: ./servicio-cliente
+    container_name: servicio-cliente
+    environment:
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/cliente_db
+      - RENIEC_API_TOKEN=${RENIEC_API_TOKEN:-sk_14050.w5IiZP8rPe5uRDITZ6LnIPyDDBnO9hK5}
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - rapido-network
+
+  servicio-paquete:
+    build: ./servicio-paquete
+    container_name: servicio-paquete
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://config-server:8888
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/paquete_db
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    networks:
+      - rapido-network
